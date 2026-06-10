@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Free PDF Tools V4 - Progress Bar Working</title>
-<meta name="description" content="Free PDF tools with progress: merge PDF, split PDF, image to PDF, PDF to image, watermark PDF, delete PDF pages and compress PDF.">
-<meta name="keywords" content="PDF merge progress, PDF split, compress PDF, image to PDF, PDF to image, watermark PDF, delete PDF pages, free PDF tools">
+<title>Free PDF Tools V5 - Mobile Fixed</title>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -14,14 +12,12 @@
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#101820;color:#fff}
 .wrap{max-width:980px;margin:auto;padding:14px}
 .hero{background:linear-gradient(135deg,#10446d,#092338);border-radius:18px;padding:20px;text-align:center}
-.hero h1{margin:0;font-size:27px;color:#bfe4ff}
-.hero p{margin:8px 0 0;color:#eee}
+.hero h1{margin:0;font-size:27px;color:#bfe4ff}.hero p{margin:8px 0 0;color:#eee}
 .card{background:#1e1e1e;border:1px solid #444;border-radius:16px;padding:16px;margin:14px 0}
 h2{color:#bfe4ff;margin:0 0 10px;font-size:23px}
 input,textarea{width:100%;padding:13px;border:1px solid #666;border-radius:10px;background:#2b2b2b;color:#fff;margin:7px 0 10px;font-size:16px}
 input[type=file]{border:2px dashed #3a6c9a;background:#333}
 button{width:100%;background:#0d4774;color:#fff;border:0;border-radius:11px;padding:14px;font-size:16px;font-weight:bold;margin:7px 0;cursor:pointer}
-button:active{transform:scale(.99)}
 .status{background:#102234;color:#bfe4ff;font-weight:bold;border-radius:10px;padding:12px;min-height:45px;margin-top:8px;white-space:pre-wrap}
 .progressBox{background:#26323d;border-radius:12px;overflow:hidden;height:24px;margin-top:10px;border:1px solid #3c5368}
 .progressBar{height:100%;width:0%;background:linear-gradient(90deg,#16804b,#37d67a);text-align:center;color:white;font-weight:bold;font-size:13px;line-height:24px;transition:width .25s}
@@ -30,11 +26,322 @@ a.download{display:none;background:#16804b;color:#fff;text-decoration:none;borde
 .warn{background:#40320d;color:#ffe38a;border:1px solid #7d6415;border-radius:12px;padding:12px;margin:12px 0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .links a{display:block;background:#16804b;color:white;text-decoration:none;border-radius:10px;padding:10px;margin:8px 0;text-align:center}
+.fileList{background:#071827;border:1px solid #21445f;color:#dff1ff;border-radius:10px;padding:10px;margin:8px 0;font-size:13px;white-space:pre-wrap}
 @media(max-width:700px){.grid{grid-template-columns:1fr}.wrap{padding:9px}.hero h1{font-size:22px}}
 </style>
 </head>
 <body>
 <div class="wrap">
+<div class="hero">
+<h1>📄 Free PDF Tools V5</h1>
+<p>Mobile Fixed: files select होते ही memory में save होंगी + % progress दिखेगा</p>
+</div>
+
+<div class="warn">✅ पहले file select करें। नीचे file names/count दिखना चाहिए, फिर button दबाएँ।</div>
+
+<div class="card">
+<h2>0. System Check</h2>
+<button type="button" onclick="checkSystem()">Check Libraries</button>
+<div id="sysStatus" class="status">Check Libraries दबाकर देखें।</div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>1. PDF Merge</h2>
+<input type="file" id="mergeFiles" accept=".pdf,application/pdf" multiple onchange="saveFiles('merge')">
+<div id="mergeList" class="fileList">No PDF selected</div>
+<button type="button" onclick="mergePDFs()">Merge PDF</button>
+<div class="progressBox"><div id="mergeBar" class="progressBar">0%</div></div>
+<a id="mergeDownload" class="download">⬇️ Download Merged PDF</a>
+<div id="mergeStatus" class="status">PDF files select करें।</div>
+</div>
+
+<div class="card">
+<h2>2. Image to PDF</h2>
+<input type="file" id="imageFiles" accept="image/*" multiple onchange="saveFiles('image')">
+<div id="imageList" class="fileList">No image selected</div>
+<button type="button" onclick="imagesToPDF()">Convert Images to PDF</button>
+<div class="progressBox"><div id="imageBar" class="progressBar">0%</div></div>
+<a id="imageDownload" class="download">⬇️ Download Image PDF</a>
+<div id="imageStatus" class="status">Images select करें।</div>
+</div>
+
+<div class="card">
+<h2>3. PDF Split</h2>
+<input type="file" id="splitFile" accept=".pdf,application/pdf" onchange="saveFiles('split')">
+<div id="splitList" class="fileList">No PDF selected</div>
+<input id="splitPages" placeholder="Pages: 1-3 या 2,4,7">
+<button type="button" onclick="splitPDF()">Split PDF</button>
+<div class="progressBox"><div id="splitBar" class="progressBar">0%</div></div>
+<a id="splitDownload" class="download">⬇️ Download Split PDF</a>
+<div id="splitStatus" class="status">PDF और pages लिखें।</div>
+</div>
+
+<div class="card">
+<h2>4. Delete Pages</h2>
+<input type="file" id="deleteFile" accept=".pdf,application/pdf" onchange="saveFiles('delete')">
+<div id="deleteList" class="fileList">No PDF selected</div>
+<input id="deletePages" placeholder="Delete pages: 1,3,5-7">
+<button type="button" onclick="deletePagesPDF()">Delete Pages</button>
+<div class="progressBox"><div id="deleteBar" class="progressBar">0%</div></div>
+<a id="deleteDownload" class="download">⬇️ Download New PDF</a>
+<div id="deleteStatus" class="status">PDF और delete pages लिखें।</div>
+</div>
+
+<div class="card">
+<h2>5. Watermark PDF</h2>
+<input type="file" id="watermarkFile" accept=".pdf,application/pdf" onchange="saveFiles('watermark')">
+<div id="watermarkList" class="fileList">No PDF selected</div>
+<input id="watermarkText" value="SaleDraft" placeholder="Watermark text">
+<button type="button" onclick="watermarkPDF()">Add Watermark</button>
+<div class="progressBox"><div id="watermarkBar" class="progressBar">0%</div></div>
+<a id="watermarkDownload" class="download">⬇️ Download Watermark PDF</a>
+<div id="watermarkStatus" class="status">PDF और watermark text डालें।</div>
+</div>
+
+<div class="card">
+<h2>6. Basic Compress</h2>
+<input type="file" id="compressFile" accept=".pdf,application/pdf" onchange="saveFiles('compress')">
+<div id="compressList" class="fileList">No PDF selected</div>
+<button type="button" onclick="compressPDF()">Compress PDF</button>
+<div class="progressBox"><div id="compressBar" class="progressBar">0%</div></div>
+<a id="compressDownload" class="download">⬇️ Download Compressed PDF</a>
+<div id="compressStatus" class="status">PDF select करें।</div>
+</div>
+</div>
+
+<div class="card">
+<h2>7. PDF to Image</h2>
+<input type="file" id="pdfImageFile" accept=".pdf,application/pdf" onchange="saveFiles('pdfImage')">
+<div id="pdfImageList" class="fileList">No PDF selected</div>
+<input id="pdfImagePages" placeholder="Pages optional: 1-3 या blank = all">
+<button type="button" onclick="pdfToImages()">Convert PDF to PNG Images</button>
+<div class="progressBox"><div id="pdfImageBar" class="progressBar">0%</div></div>
+<div id="pdfImageLinks" class="links"></div>
+<div id="pdfImageStatus" class="status">PDF select करें।</div>
+</div>
+</div>
+
+<script>
+let saved = {merge:[], image:[], split:[], delete:[], watermark:[], compress:[], pdfImage:[]};
+
+window.addEventListener("error", function(e){ alert("Script Error: " + e.message); });
+
+function S(id,t){document.getElementById(id).textContent=t}
+function P(id,percent){percent=Math.max(0,Math.min(100,Math.round(percent)));let b=document.getElementById(id);b.style.width=percent+"%";b.textContent=percent+"%";}
+function hide(id){document.getElementById(id).style.display="none"}
+function waitFrame(){return new Promise(r=>setTimeout(r,40))}
+async function AB(file){return await file.arrayBuffer()}
+
+function saveFiles(type){
+  const map = {
+    merge:"mergeFiles", image:"imageFiles", split:"splitFile", delete:"deleteFile",
+    watermark:"watermarkFile", compress:"compressFile", pdfImage:"pdfImageFile"
+  };
+  const listMap = {
+    merge:"mergeList", image:"imageList", split:"splitList", delete:"deleteList",
+    watermark:"watermarkList", compress:"compressList", pdfImage:"pdfImageList"
+  };
+  const input=document.getElementById(map[type]);
+  saved[type]=Array.from(input.files || []);
+  const names=saved[type].map((f,i)=>`${i+1}. ${f.name} (${(f.size/1024).toFixed(1)} KB)`).join("\\n");
+  S(listMap[type], saved[type].length ? `Selected: ${saved[type].length}\\n${names}` : "No file selected");
+}
+
+function showDownload(id, blob, name){
+  const a=document.getElementById(id);
+  if(a.href) URL.revokeObjectURL(a.href);
+  const url=URL.createObjectURL(blob);
+  a.href=url; a.download=name; a.style.display="block";
+  a.textContent="⬇️ Download " + name;
+}
+
+function reset(bar,down){P(bar,0);hide(down)}
+
+function checkSystem(){
+  let msg="";
+  msg += "PDFLib: " + (window.PDFLib ? "OK ✅" : "LOAD FAIL ❌") + "\\n";
+  msg += "jsPDF: " + (window.jspdf ? "OK ✅" : "LOAD FAIL ❌") + "\\n";
+  msg += "pdf.js: " + (window.pdfjsLib ? "OK ✅" : "LOAD FAIL ❌");
+  S("sysStatus", msg);
+  if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+}
+setTimeout(checkSystem,800);
+
+function parsePages(str,max){
+  str=(str||"").trim();
+  if(!str) return Array.from({length:max},(_,i)=>i);
+  const set=new Set();
+  str.split(",").forEach(p=>{
+    p=p.trim(); if(!p)return;
+    if(p.includes("-")){
+      let [a,b]=p.split("-").map(x=>parseInt(x.trim(),10));
+      if(isNaN(a)||isNaN(b))return;
+      if(a>b){let t=a;a=b;b=t}
+      for(let i=a;i<=b;i++) if(i>=1&&i<=max)set.add(i-1);
+    } else {
+      let n=parseInt(p,10); if(n>=1&&n<=max)set.add(n-1);
+    }
+  });
+  return [...set].sort((a,b)=>a-b);
+}
+
+async function mergePDFs(){
+  reset("mergeBar","mergeDownload");
+  const files=saved.merge.length ? saved.merge : Array.from(document.getElementById("mergeFiles").files || []);
+  S("mergeStatus",`Button दब गया. Detected files: ${files.length}`);
+  if(!window.PDFLib){S("mergeStatus","❌ PDFLib load नहीं हुई।");return}
+  if(files.length<2){S("mergeStatus",`❌ Detected files: ${files.length}\\nकृपया दोबारा PDF select करें। नीचे Selected count दिखना चाहिए।`);return}
+  try{
+    const out=await PDFLib.PDFDocument.create();
+    for(let i=0;i<files.length;i++){
+      let start=(i/files.length)*85;
+      P("mergeBar",start);
+      S("mergeStatus",`Reading PDF ${i+1}/${files.length}\\n${files[i].name}\\nProgress: ${Math.round(start)}%`);
+      await waitFrame();
+      const pdf=await PDFLib.PDFDocument.load(await AB(files[i]),{ignoreEncryption:true});
+      const pages=await out.copyPages(pdf,pdf.getPageIndices());
+      pages.forEach((p,pi)=>{out.addPage(p);P("mergeBar",start+((pi+1)/pages.length)*(85/files.length));});
+    }
+    P("mergeBar",92);S("mergeStatus","Saving final PDF...");await waitFrame();
+    const bytes=await out.save({useObjectStreams:true});
+    showDownload("mergeDownload",new Blob([bytes],{type:"application/pdf"}),"merged-pdf.pdf");
+    P("mergeBar",100);S("mergeStatus",`✅ 100% Complete\\nMerged files: ${files.length}\\nDownload ready.`);
+  }catch(e){console.error(e);S("mergeStatus","❌ Merge error: "+e.message)}
+}
+
+function readDataURL(file){return new Promise((res,rej)=>{let r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
+function loadImg(src){return new Promise((res,rej)=>{let img=new Image();img.onload=()=>res(img);img.onerror=rej;img.src=src})}
+
+async function imagesToPDF(){
+  reset("imageBar","imageDownload");
+  const files=saved.image.length ? saved.image : Array.from(document.getElementById("imageFiles").files || []);
+  S("imageStatus",`Button दब गया. Detected images: ${files.length}`);
+  if(!window.jspdf){S("imageStatus","❌ jsPDF load नहीं हुई।");return}
+  if(!files.length){S("imageStatus","❌ Image select करें।");return}
+  try{
+    const jsPDF=window.jspdf.jsPDF;
+    let pdf=new jsPDF("p","mm","a4");
+    for(let i=0;i<files.length;i++){
+      let start=(i/files.length)*90;
+      P("imageBar",start);S("imageStatus",`Image ${i+1}/${files.length}\\n${files[i].name}\\nProgress: ${Math.round(start)}%`);
+      await waitFrame();
+      const data=await readDataURL(files[i]);
+      const img=await loadImg(data);
+      if(i>0) pdf.addPage();
+      const pageW=210,pageH=297,margin=10,maxW=pageW-margin*2,maxH=pageH-margin*2;
+      let w=maxW,h=img.height*w/img.width;if(h>maxH){h=maxH;w=img.width*h/img.height}
+      pdf.addImage(data,files[i].type.includes("png")?"PNG":"JPEG",(pageW-w)/2,(pageH-h)/2,w,h);
+      P("imageBar",((i+1)/files.length)*90);
+    }
+    P("imageBar",96);S("imageStatus","Saving PDF...");await waitFrame();
+    showDownload("imageDownload",pdf.output("blob"),"images-to-pdf.pdf");
+    P("imageBar",100);S("imageStatus",`✅ 100% Complete\\nImages: ${files.length}\\nDownload ready.`);
+  }catch(e){console.error(e);S("imageStatus","❌ Image error: "+e.message)}
+}
+
+async function splitPDF(){
+  reset("splitBar","splitDownload");
+  const file=saved.split[0] || document.getElementById("splitFile").files[0];
+  if(!file){S("splitStatus","PDF select करें।");return}
+  try{
+    P("splitBar",10);S("splitStatus","Reading PDF...");await waitFrame();
+    const src=await PDFLib.PDFDocument.load(await AB(file),{ignoreEncryption:true});
+    const idx=parsePages(document.getElementById("splitPages").value,src.getPageCount());
+    if(!idx.length){S("splitStatus","Valid pages नहीं मिले।");return}
+    const out=await PDFLib.PDFDocument.create();
+    const pages=await out.copyPages(src,idx);
+    pages.forEach((p,i)=>{out.addPage(p);P("splitBar",20+((i+1)/pages.length)*70);});
+    const bytes=await out.save({useObjectStreams:true});
+    showDownload("splitDownload",new Blob([bytes],{type:"application/pdf"}),"split-pdf.pdf");
+    P("splitBar",100);S("splitStatus",`✅ 100% Complete\\nPages: ${idx.length}`);
+  }catch(e){S("splitStatus","❌ Split error: "+e.message)}
+}
+
+async function deletePagesPDF(){
+  reset("deleteBar","deleteDownload");
+  const file=saved.delete[0] || document.getElementById("deleteFile").files[0];
+  if(!file){S("deleteStatus","PDF select करें।");return}
+  try{
+    P("deleteBar",10);S("deleteStatus","Reading PDF...");await waitFrame();
+    const src=await PDFLib.PDFDocument.load(await AB(file),{ignoreEncryption:true});
+    const del=new Set(parsePages(document.getElementById("deletePages").value,src.getPageCount()));
+    const keep=[];for(let i=0;i<src.getPageCount();i++) if(!del.has(i)) keep.push(i);
+    if(!del.size){S("deleteStatus","Delete pages लिखें।");return}
+    if(!keep.length){S("deleteStatus","सभी pages delete नहीं कर सकते।");return}
+    const out=await PDFLib.PDFDocument.create();
+    const pages=await out.copyPages(src,keep);
+    pages.forEach((p,i)=>{out.addPage(p);P("deleteBar",20+((i+1)/pages.length)*70);});
+    const bytes=await out.save({useObjectStreams:true});
+    showDownload("deleteDownload",new Blob([bytes],{type:"application/pdf"}),"pages-deleted.pdf");
+    P("deleteBar",100);S("deleteStatus",`✅ 100% Complete\\nDeleted: ${del.size}\\nRemaining: ${keep.length}`);
+  }catch(e){S("deleteStatus","❌ Delete error: "+e.message)}
+}
+
+async function watermarkPDF(){
+  reset("watermarkBar","watermarkDownload");
+  const file=saved.watermark[0] || document.getElementById("watermarkFile").files[0];
+  const text=document.getElementById("watermarkText").value||"SaleDraft";
+  if(!file){S("watermarkStatus","PDF select करें।");return}
+  try{
+    P("watermarkBar",10);S("watermarkStatus","Reading PDF...");await waitFrame();
+    const pdf=await PDFLib.PDFDocument.load(await AB(file),{ignoreEncryption:true});
+    const font=await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    const pages=pdf.getPages();
+    pages.forEach((page,i)=>{
+      const s=page.getSize();
+      page.drawText(text,{x:s.width/2-140,y:s.height/2,size:42,font,color:PDFLib.rgb(.8,.1,.1),opacity:.25,rotate:PDFLib.degrees(-35)});
+      P("watermarkBar",10+((i+1)/pages.length)*80);
+    });
+    const bytes=await pdf.save({useObjectStreams:true});
+    showDownload("watermarkDownload",new Blob([bytes],{type:"application/pdf"}),"watermark.pdf");
+    P("watermarkBar",100);S("watermarkStatus",`✅ 100% Complete\\nPages: ${pages.length}`);
+  }catch(e){S("watermarkStatus","❌ Watermark error: "+e.message)}
+}
+
+async function compressPDF(){
+  reset("compressBar","compressDownload");
+  const file=saved.compress[0] || document.getElementById("compressFile").files[0];
+  if(!file){S("compressStatus","PDF select करें।");return}
+  try{
+    P("compressBar",20);S("compressStatus","Reading PDF...");await waitFrame();
+    const pdf=await PDFLib.PDFDocument.load(await AB(file),{ignoreEncryption:true});
+    P("compressBar",60);S("compressStatus","Optimizing PDF...");await waitFrame();
+    const bytes=await pdf.save({useObjectStreams:true});
+    showDownload("compressDownload",new Blob([bytes],{type:"application/pdf"}),"compressed-basic.pdf");
+    P("compressBar",100);S("compressStatus",`✅ 100% Complete\\nOld ${(file.size/1024).toFixed(1)} KB → New ${(bytes.length/1024).toFixed(1)} KB`);
+  }catch(e){S("compressStatus","❌ Compress error: "+e.message)}
+}
+
+async function pdfToImages(){
+  P("pdfImageBar",0);
+  const file=saved.pdfImage[0] || document.getElementById("pdfImageFile").files[0];
+  const links=document.getElementById("pdfImageLinks");links.innerHTML="";
+  if(!file){S("pdfImageStatus","PDF select करें।");return}
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    P("pdfImageBar",10);S("pdfImageStatus","Reading PDF...");await waitFrame();
+    const pdf=await pdfjsLib.getDocument({data:await AB(file)}).promise;
+    const pages=parsePages(document.getElementById("pdfImagePages").value,pdf.numPages);
+    for(let i=0;i<pages.length;i++){
+      P("pdfImageBar",10+(i/pages.length)*85);
+      S("pdfImageStatus",`Page ${i+1}/${pages.length} image बन रही है...`);
+      const page=await pdf.getPage(pages[i]+1);
+      const viewport=page.getViewport({scale:1.6});
+      const canvas=document.createElement("canvas");
+      canvas.width=viewport.width;canvas.height=viewport.height;
+      await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
+      const blob=await new Promise(res=>canvas.toBlob(res,"image/png"));
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);a.download=`page-${pages[i]+1}.png`;a.textContent=`⬇️ Download Page ${pages[i]+1}`;
+      links.appendChild(a);
+    }
+    P("pdfImageBar",100);S("pdfImageStatus",`✅ 100% Complete\\nImages ready: ${pages.length}`);
+  }catch(e){S("pdfImageStatus","❌ PDF to Image error: "+e.message)}
+}
+</script>
+</body>
+</html><div class="wrap">
 <div class="hero">
 <h1>📄 Free PDF Tools V4</h1>
 <p>Progress Bar के साथ Merge, Split, Image to PDF, PDF to Image, Watermark, Delete Pages, Compress</p>
