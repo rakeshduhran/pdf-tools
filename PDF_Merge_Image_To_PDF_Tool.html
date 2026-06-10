@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDF Tools Hub</title>
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:20px}
+.wrap{max-width:900px;margin:auto;background:#fff;padding:20px;border-radius:12px}
+h1{color:#17456b}
+.card{border:1px solid #ddd;padding:15px;border-radius:10px;margin:10px 0}
+button{background:#17456b;color:#fff;border:0;padding:10px 15px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>PDF Merge & Image to PDF Tool</h1>
+
+<div class="card">
+<h3>PDF Merge</h3>
+<input type="file" id="pdfs" multiple accept=".pdf">
+<p>Select multiple PDF files.</p>
+<button onclick="alert('PDF Merge UI Ready. Add pdf-lib library when hosting.')">Merge PDF</button>
+</div>
+
+<div class="card">
+<h3>Image to PDF</h3>
+<input type="file" id="imgs" multiple accept="image/*">
+<p>Select JPG / PNG images.</p>
+<button onclick="alert('Image to PDF UI Ready. Add jsPDF library when hosting.')">Convert Images to PDF</button>
+</div>
+
+<div class="card">
+<h3>Future Tools</h3>
+<ul>
+<li>PDF Split</li>
+<li>PDF Compress</li>
+<li>PDF to Image</li>
+<li>Word to PDF</li>
+</ul>
+</div>
+
+</div>
+</body>
+</html>
