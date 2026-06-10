@@ -1,45 +1,169 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PDF Tools Hub</title>
+<title>PDF Tools - Merge PDF & Image to PDF</title>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:20px}
-.wrap{max-width:900px;margin:auto;background:#fff;padding:20px;border-radius:12px}
-h1{color:#17456b}
-.card{border:1px solid #ddd;padding:15px;border-radius:10px;margin:10px 0}
-button{background:#17456b;color:#fff;border:0;padding:10px 15px;border-radius:8px}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;color:#111}
+.wrap{max-width:900px;margin:auto;padding:18px}
+.hero{background:linear-gradient(135deg,#17456b,#0d273f);color:white;border-radius:18px;padding:22px;text-align:center;box-shadow:0 8px 25px #0002}
+.hero h1{margin:0;font-size:28px}.hero p{margin:8px 0 0;color:#e7f2ff}
+.card{background:white;border:1px solid #ddd;border-radius:16px;padding:18px;margin:16px 0;box-shadow:0 5px 18px #0001}
+h2{color:#17456b;margin:0 0 10px}
+input[type=file]{width:100%;padding:12px;border:2px dashed #aac2d8;border-radius:12px;background:#f9fcff}
+button{background:#17456b;color:#fff;border:0;padding:12px 18px;border-radius:10px;font-weight:700;margin:8px 5px 0 0;cursor:pointer}
+.status{margin-top:10px;padding:10px;border-radius:10px;background:#eef6ff;color:#17456b;font-weight:700;min-height:40px}
+.warn{background:#fff3cd;border:1px solid #ffe08a;color:#664d03;border-radius:12px;padding:12px;margin:14px 0}
+.small{font-size:13px;color:#555;line-height:1.5}
+.download{display:none;text-decoration:none;background:#1f7a4d;color:white;padding:12px 18px;border-radius:10px;font-weight:700;margin-top:10px;width:max-content}
+.footer{text-align:center;color:#666;font-size:13px;padding:15px}
+@media(max-width:600px){.wrap{padding:10px}.hero h1{font-size:22px}button,.download{width:100%;text-align:center}}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>PDF Merge & Image to PDF Tool</h1>
+<div class="hero">
+<h1>📄 PDF Tools</h1>
+<p>PDF Merge और Image to PDF — सब कुछ आपके browser में, कोई upload server पर नहीं।</p>
+</div>
+
+<div class="warn">✅ यह tool mobile और desktop दोनों पर चलेगा। बड़ी PDF files में थोड़ा समय लग सकता है।</div>
 
 <div class="card">
-<h3>PDF Merge</h3>
-<input type="file" id="pdfs" multiple accept=".pdf">
-<p>Select multiple PDF files.</p>
-<button onclick="alert('PDF Merge UI Ready. Add pdf-lib library when hosting.')">Merge PDF</button>
+<h2>1. PDF Merge</h2>
+<p class="small">2 या उससे ज्यादा PDF files select करें। फिर Merge PDF दबाएं।</p>
+<input type="file" id="pdfFiles" accept="application/pdf,.pdf" multiple>
+<button onclick="mergePDFs()">Merge PDF</button>
+<a id="mergeDownload" class="download" download="merged.pdf">⬇️ Download Merged PDF</a>
+<div id="mergeStatus" class="status">PDF files select करें।</div>
 </div>
 
 <div class="card">
-<h3>Image to PDF</h3>
-<input type="file" id="imgs" multiple accept="image/*">
-<p>Select JPG / PNG images.</p>
-<button onclick="alert('Image to PDF UI Ready. Add jsPDF library when hosting.')">Convert Images to PDF</button>
+<h2>2. Image to PDF</h2>
+<p class="small">JPG, JPEG, PNG images select करें। हर image PDF के अलग page में जाएगी।</p>
+<input type="file" id="imageFiles" accept="image/jpeg,image/png,image/webp" multiple>
+<button onclick="imagesToPDF()">Convert Images to PDF</button>
+<a id="imageDownload" class="download" download="images-to-pdf.pdf">⬇️ Download Image PDF</a>
+<div id="imageStatus" class="status">Images select करें।</div>
 </div>
 
 <div class="card">
-<h3>Future Tools</h3>
-<ul>
-<li>PDF Split</li>
-<li>PDF Compress</li>
-<li>PDF to Image</li>
-<li>Word to PDF</li>
+<h2>Tips</h2>
+<ul class="small">
+<li>PDF merge में files जिस order में select होंगी, उसी order में merge होंगी।</li>
+<li>Images PDF में convert होते समय portrait/landscape अपने आप set होगा।</li>
+<li>अगर बहुत बड़ी files हों तो mobile में slow हो सकता है।</li>
 </ul>
 </div>
 
+<div class="footer">Made for SaleDraft Portal</div>
 </div>
+
+<script>
+function setStatus(id, text){document.getElementById(id).innerText = text;}
+
+function showDownload(id, blob, filename){
+  const link = document.getElementById(id);
+  if(link.href) URL.revokeObjectURL(link.href);
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.style.display = "inline-block";
+}
+
+async function mergePDFs(){
+  const files = Array.from(document.getElementById("pdfFiles").files || []);
+  document.getElementById("mergeDownload").style.display = "none";
+  if(files.length < 2){setStatus("mergeStatus","कम से कम 2 PDF files select करें।");return;}
+
+  try{
+    setStatus("mergeStatus","PDF merge हो रही है... कृपया इंतजार करें।");
+    const mergedPdf = await PDFLib.PDFDocument.create();
+
+    for(let i=0;i<files.length;i++){
+      setStatus("mergeStatus",`PDF ${i+1}/${files.length} process हो रही है...`);
+      const arrayBuffer = await files[i].arrayBuffer();
+      const pdf = await PDFLib.PDFDocument.load(arrayBuffer,{ignoreEncryption:true});
+      const pages = await mergedPdf.copyPages(pdf,pdf.getPageIndices());
+      pages.forEach(page => mergedPdf.addPage(page));
+    }
+
+    const mergedBytes = await mergedPdf.save();
+    const blob = new Blob([mergedBytes],{type:"application/pdf"});
+    showDownload("mergeDownload",blob,"merged-pdf.pdf");
+    setStatus("mergeStatus","✅ PDF merge हो गई। Download button दबाएं।");
+  }catch(err){
+    console.error(err);
+    setStatus("mergeStatus","❌ Error: PDF protected/corrupt हो सकती है। दूसरी PDF try करें।");
+  }
+}
+
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(src){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function imagesToPDF(){
+  const files = Array.from(document.getElementById("imageFiles").files || []);
+  document.getElementById("imageDownload").style.display = "none";
+  if(files.length < 1){setStatus("imageStatus","कम से कम 1 image select करें।");return;}
+
+  try{
+    setStatus("imageStatus","Images PDF में convert हो रही हैं...");
+    const jsPDF = window.jspdf.jsPDF;
+    let pdf = null;
+
+    for(let i=0;i<files.length;i++){
+      setStatus("imageStatus",`Image ${i+1}/${files.length} process हो रही है...`);
+      const dataUrl = await readFileAsDataURL(files[i]);
+      const img = await loadImage(dataUrl);
+
+      const pageW = 210;
+      const pageH = 297;
+      const margin = 10;
+      const maxW = pageW - margin*2;
+      const maxH = pageH - margin*2;
+
+      let imgW = maxW;
+      let imgH = (img.height * imgW) / img.width;
+      if(imgH > maxH){
+        imgH = maxH;
+        imgW = (img.width * imgH) / img.height;
+      }
+
+      if(!pdf) pdf = new jsPDF("p","mm","a4");
+      else pdf.addPage();
+
+      const x = (pageW - imgW) / 2;
+      const y = (pageH - imgH) / 2;
+      const type = files[i].type.includes("png") ? "PNG" : "JPEG";
+      pdf.addImage(dataUrl,type,x,y,imgW,imgH);
+    }
+
+    const blob = pdf.output("blob");
+    showDownload("imageDownload",blob,"images-to-pdf.pdf");
+    setStatus("imageStatus","✅ Images PDF में convert हो गईं। Download button दबाएं।");
+  }catch(err){
+    console.error(err);
+    setStatus("imageStatus","❌ Error: Image read नहीं हो पाई। JPG/PNG try करें।");
+  }
+}
+</script>
 </body>
 </html>
