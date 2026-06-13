@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hindi OCR Tool - Image PDF to Text</title>
+<script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://unpkg.com/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101820;color:#fff;font-family:Arial}.wrap{max-width:1000px;margin:auto;padding:14px}.hero{background:linear-gradient(135deg,#10446d,#092338);border-radius:18px;padding:20px;text-align:center}.hero h1{margin:0;color:#bfe4ff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{background:#1e1e1e;border:1px solid #444;border-radius:16px;padding:16px;margin:14px 0}h2{color:#bfe4ff;margin:0 0 10px}input,select,textarea{width:100%;padding:13px;border:1px solid #555;border-radius:10px;background:#2b2b2b;color:white;margin:8px 0;font-size:16px}input[type=file]{border:2px dashed #3a6c9a;background:#333}button{width:100%;background:#0d4774;color:#fff;border:0;border-radius:11px;padding:14px;font-size:16px;font-weight:bold;margin:8px 0}.status{background:#102234;color:#bfe4ff;font-weight:bold;border-radius:10px;padding:12px;margin-top:8px;white-space:pre-wrap;min-height:45px}.progressBox{background:#26323d;border-radius:12px;overflow:hidden;height:24px;margin-top:10px;border:1px solid #3c5368}.progressBar{height:100%;width:0%;background:linear-gradient(90deg,#16804b,#37d67a);text-align:center;color:white;font-weight:bold;font-size:13px;line-height:24px}.warn{background:#40320d;color:#ffe38a;border:1px solid #7d6415;border-radius:12px;padding:12px;margin:12px 0}.small{font-size:13px;color:#ccc;line-height:1.5}#ocrText{min-height:260px;line-height:1.6}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.preview{max-width:100%;max-height:330px;border-radius:10px;border:1px solid #555;background:#fff;margin-top:8px}@media(max-width:800px){.grid,.actions{grid-template-columns:1fr}.wrap{padding:9px}.hero h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero"><h1>🔍 Hindi OCR Tool</h1><p>Image और PDF से Hindi/English text निकालें — Copy, TXT और Word Download</p></div>
+<div class="warn">⚠️ Hindi OCR 100% perfect नहीं होता। Registry/Jamabandi/Khasra text को original document से मिलान जरूर करें।</div>
+
+<div class="card"><h2>System Check</h2><button onclick="checkOCR()">Check OCR Libraries</button><div id="sysStatus" class="status">Check दबाएँ। पहली बार Hindi model load होने में समय लग सकता है।</div></div>
+
+<div class="grid">
+<div class="card"><h2>1. Image to Text OCR</h2><p class="small">JPG/PNG/WebP image upload करें।</p><input type="file" id="imageInput" accept="image/*"><button onclick="runImageOCR()">Extract Text from Image</button><div class="progressBox"><div id="imageBar" class="progressBar">0%</div></div><div id="imageStatus" class="status">Image select करें।</div><img id="imagePreview" class="preview" style="display:none"></div>
+
+<div class="card"><h2>2. PDF to Text / OCR</h2><p class="small">Computer PDF में direct text निकलेगा। Scan PDF में OCR चलेगा।</p><input type="file" id="pdfInput" accept=".pdf,application/pdf"><input id="pdfPages" placeholder="Pages optional: 1-3 या blank = all"><select id="pdfMode"><option value="auto">Auto: direct text, जरूरत पर OCR</option><option value="text">Only direct text extract</option><option value="ocr">Force OCR scanned PDF</option></select><button onclick="runPDFOCR()">Extract Text from PDF</button><div class="progressBox"><div id="pdfBar" class="progressBar">0%</div></div><div id="pdfStatus" class="status">PDF select करें।</div></div>
+</div>
+
+<div class="card"><h2>Extracted Text</h2><textarea id="ocrText" placeholder="यहाँ extracted text आएगा..."></textarea><div class="actions"><button onclick="copyText()">📋 Copy Text</button><button onclick="downloadTXT()">⬇️ Download TXT</button><button onclick="downloadDOC()">⬇️ Download DOC</button></div><div id="textStatus" class="status">Text ready होने के बाद copy/download कर सकते हैं।</div></div>
+
+<div class="card"><h2>Registry Hindi Auto-Correct</h2><p class="small">OCR के बाद registry/jamabandi common words की छोटी correction.</p><button onclick="autoCorrectHindi()">Auto Correct Common Hindi Words</button><div class="status">खेवट, खतौनी, खसरा, जमाबंदी, तहसील, जिला, पंजीकरण, विक्रेता, क्रेता</div></div>
+</div>
+
+<script>
+if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js";}
+function el(id){return document.getElementById(id)}
+function set(id,t){el(id).textContent=t}
+function progress(id,p){p=Math.max(0,Math.min(100,Math.round(p)));el(id).style.width=p+"%";el(id).textContent=p+"%"}
+async function fileAB(file){return await file.arrayBuffer()}
+function wait(ms=30){return new Promise(r=>setTimeout(r,ms))}
+function checkOCR(){set("sysStatus","pdf.js: "+(window.pdfjsLib?"OK ✅":"FAIL ❌")+"\nTesseract.js: "+(window.Tesseract?"OK ✅":"FAIL ❌")+"\nLanguages: hin+eng")}
+function parsePages(str,max){str=(str||"").trim();if(!str)return Array.from({length:max},(_,i)=>i+1);const setp=new Set();str.split(",").forEach(p=>{p=p.trim();if(!p)return;if(p.includes("-")){let [a,b]=p.split("-").map(x=>parseInt(x.trim(),10));if(isNaN(a)||isNaN(b))return;if(a>b){let t=a;a=b;b=t}for(let i=a;i<=b;i++)if(i>=1&&i<=max)setp.add(i)}else{let n=parseInt(p,10);if(n>=1&&n<=max)setp.add(n)}});return [...setp].sort((a,b)=>a-b)}
+function cleanOCRText(t){return (t||"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim()}
+
+async function runImageOCR(){
+ const file=el("imageInput").files[0];progress("imageBar",0);
+ if(!file){set("imageStatus","Image select करें।");return}
+ if(!window.Tesseract){set("imageStatus","Tesseract.js load नहीं हुई।");return}
+ try{
+  const url=URL.createObjectURL(file);el("imagePreview").src=url;el("imagePreview").style.display="block";progress("imageBar",5);
+  const result=await Tesseract.recognize(file,"hin+eng",{logger:m=>{if(m.status){let pct=typeof m.progress==="number"?5+m.progress*90:10;progress("imageBar",pct);set("imageStatus",m.status+"\nProgress: "+Math.round(pct)+"%")}}});
+  progress("imageBar",100);el("ocrText").value=cleanOCRText(result.data.text||"");set("imageStatus","✅ 100% Complete. Text नीचे आ गया।");
+ }catch(e){set("imageStatus","❌ OCR Error: "+e.message)}
+}
+
+async function extractDirectText(pdf,pages){
+ let output="";
+ for(let i=0;i<pages.length;i++){
+  const n=pages[i],page=await pdf.getPage(n),content=await page.getTextContent();
+  output+="\n\n===== Page "+n+" =====\n"+content.items.map(item=>item.str).join(" ");
+  progress("pdfBar",10+((i+1)/pages.length)*35);set("pdfStatus","Direct text page "+(i+1)+"/"+pages.length);await wait();
+ }
+ return output.trim();
+}
+async function renderCanvas(pdf,pageNum,scale=2){
+ const page=await pdf.getPage(pageNum),viewport=page.getViewport({scale});
+ const canvas=document.createElement("canvas");canvas.width=viewport.width;canvas.height=viewport.height;
+ await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;return canvas;
+}
+async function runPDFOCR(){
+ const file=el("pdfInput").files[0],mode=el("pdfMode").value;progress("pdfBar",0);
+ if(!file){set("pdfStatus","PDF select करें।");return}
+ if(!window.pdfjsLib){set("pdfStatus","pdf.js load नहीं हुई।");return}
+ try{
+  progress("pdfBar",5);set("pdfStatus","PDF reading...");
+  const pdf=await pdfjsLib.getDocument({data:await fileAB(file)}).promise;
+  const pages=parsePages(el("pdfPages").value,pdf.numPages);
+  let finalText="";
+  if(mode==="text"||mode==="auto"){
+   finalText=await extractDirectText(pdf,pages);
+   const meaningful=finalText.replace(/\s/g,"").length;
+   if(mode==="text"||meaningful>40*pages.length){progress("pdfBar",100);el("ocrText").value=cleanOCRText(finalText);set("pdfStatus","✅ Direct text extracted. अगर text गलत लगे तो Force OCR use करें।");return}
+  }
+  if(!window.Tesseract){set("pdfStatus","Tesseract.js load नहीं हुई।");return}
+  let all="";
+  for(let i=0;i<pages.length;i++){
+   const n=pages[i],base=10+(i/pages.length)*85;progress("pdfBar",base);set("pdfStatus","Rendering page "+(i+1)+"/"+pages.length);await wait();
+   const canvas=await renderCanvas(pdf,n,2);
+   const result=await Tesseract.recognize(canvas,"hin+eng",{logger:m=>{if(m.status){let pct=base+(typeof m.progress==="number"?m.progress*(85/pages.length):0);progress("pdfBar",pct);set("pdfStatus","OCR Page "+(i+1)+"/"+pages.length+"\n"+m.status+"\nProgress: "+Math.round(pct)+"%")}}});
+   all+="\n\n===== Page "+n+" =====\n"+(result.data.text||"");
+  }
+  progress("pdfBar",100);el("ocrText").value=cleanOCRText(all);set("pdfStatus","✅ 100% Complete. Text नीचे आ गया।");
+ }catch(e){set("pdfStatus","❌ PDF OCR Error: "+e.message)}
+}
+function autoCorrectHindi(){let t=el("ocrText").value||"";[[/खेबाट/g,"खेवट"],[/खेवट्/g,"खेवट"],[/खतोनी/g,"खतौनी"],[/खतौनि/g,"खतौनी"],[/खतानी/g,"खतौनी"],[/जमाबन्दी/g,"जमाबंदी"],[/जमाबदी/g,"जमाबंदी"],[/तहसी1/g,"तहसील"],[/तहसिल/g,"तहसील"],[/जि ला/g,"जिला"],[/पंजीकरन/g,"पंजीकरण"],[/विक्रता/g,"विक्रेता"],[/क्रता/g,"क्रेता"],[/इन्टकाल/g,"इंतकाल"],[/इन्तकाल/g,"इंतकाल"]].forEach(([a,b])=>{t=t.replace(a,b)});el("ocrText").value=cleanOCRText(t);set("textStatus","✅ Common Hindi words auto-correct हो गए।")}
+async function copyText(){const text=el("ocrText").value||"";if(!text.trim()){set("textStatus","Copy करने के लिए text नहीं है।");return}try{await navigator.clipboard.writeText(text);set("textStatus","✅ Text copy हो गया।")}catch(e){el("ocrText").select();document.execCommand("copy");set("textStatus","✅ Text copy हो गया।")}}
+function downloadTXT(){const text=el("ocrText").value||"";if(!text.trim()){set("textStatus","Download करने के लिए text नहीं है।");return}const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="extracted-text.txt";a.click();URL.revokeObjectURL(a.href);set("textStatus","✅ TXT download हो गया।")}
+function downloadDOC(){const raw=el("ocrText").value||"";if(!raw.trim()){set("textStatus","Download करने के लिए text नहीं है।");return}const text=raw.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");const html='<html><head><meta charset="UTF-8"></head><body style="font-family:Mangal,Arial;line-height:1.7">'+text+'</body></html>';const blob=new Blob([html],{type:"application/msword;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="extracted-text.doc";a.click();URL.revokeObjectURL(a.href);set("textStatus","✅ DOC download हो गया।")}
+el("imageInput").addEventListener("change",()=>{const f=el("imageInput").files[0];if(f)set("imageStatus","Selected image: "+f.name+"\nSize: "+(f.size/1024).toFixed(1)+" KB")});
+el("pdfInput").addEventListener("change",()=>{const f=el("pdfInput").files[0];if(f)set("pdfStatus","Selected PDF: "+f.name+"\nSize: "+(f.size/1024).toFixed(1)+" KB")});
+setTimeout(checkOCR,700);
+</script>
+</body>
+</html>
